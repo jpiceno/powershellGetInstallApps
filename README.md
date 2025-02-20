@@ -29,6 +29,43 @@ Run the script in PowerShell:
 
 Ensure you have appropriate permissions to access the registry keys.
 
+## Script Code
+
+```powershell
+# Define registry paths for installed applications
+$registryPaths = @(
+    "HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*",
+    "HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*",
+    "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*"
+)
+
+# Create an array to store results
+$installedApps = @()
+
+# Loop through each registry path
+foreach ($path in $registryPaths) {
+    if (Test-Path $path) {
+        $apps = Get-ItemProperty -Path $path | Where-Object { $_.DisplayName -and $_.InstallDate }
+
+        foreach ($app in $apps) {
+            $installedApps += [PSCustomObject]@{
+                Name        = $app.DisplayName
+                InstallDate = if ($app.InstallDate -match "^\d{8}$") { 
+                                [datetime]::ParseExact($app.InstallDate, "yyyyMMdd", $null) 
+                              } else { 
+                                "Unknown" 
+                              }
+                Version     = $app.DisplayVersion
+                Publisher   = $app.Publisher
+            }
+        }
+    }
+}
+
+# Output results in a table format
+$installedApps | Sort-Object InstallDate -Descending | Format-Table -AutoSize
+```
+
 ## Example Output
 
 ```
